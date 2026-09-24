@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Infinite World — Open World 3D browser game" />
+    <title>Infinite World — Open World</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: #07111d;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        #game { position: fixed; inset: 0; }
+
+        #hud {
+            position: fixed;
+            top: 18px;
+            left: 18px;
+            z-index: 10;
+            width: min(330px, calc(100vw - 36px));
+            padding: 16px;
+            background: rgba(5,10,18,0.78);
+            border: 1px solid rgba(0,236,255,0.55);
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0,236,255,0.18);
+            backdrop-filter: blur(8px);
+        }
+
+        #hud h1 {
+            margin: 0 0 8px;
+            color: #00ecff;
+            font-size: 1.25rem;
+        }
+
+        #hud p {
+            margin: 6px 0;
+            color: #d5e9ef;
+            font-size: 0.9rem;
+        }
+
+        #location { color: #00ff66; font-weight: bold; }
+
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: linear-gradient(rgba(0,0,0,0.48), rgba(0,0,0,0.75)), radial-gradient(circle at center, #1c5270, #05070b 70%);
+            text-align: center;
+        }
+
+        #start-card {
+            width: min(540px, 100%);
+            padding: 30px;
+            background: rgba(4,10,18,0.9);
+            border: 1px solid #00ecff;
+            border-radius: 16px;
+            box-shadow: 0 0 35px rgba(0,236,255,0.3);
+        }
+
+        #start-card h2 {
+            margin-top: 0;
+            color: #00ecff;
+            font-size: 2rem;
+        }
+
+        #start-card p { color: #d4e6ed; line-height: 1.6; }
+
+        button {
+            padding: 13px 22px;
+            color: #001015;
+            background: #00ecff;
+            border: 0;
+            border-radius: 7px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover { background: #7df6ff; }
+
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            z-index: 5;
+            width: 12px;
+            height: 12px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        #crosshair::before, #crosshair::after {
+            position: absolute;
+            content: "";
+            background: white;
+            box-shadow: 0 0 5px black;
+        }
+
+        #crosshair::before {
+            top: 5px;
+            left: 0;
+            width: 12px;
+            height: 2px;
+        }
+
+        #crosshair::after {
+            top: 0;
+            left: 5px;
+            width: 2px;
+            height: 12px;
+        }
+
+        #world-expansion-panel {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 15;
+            width: min(390px, calc(100vw - 36px));
+            max-height: 70vh;
+            overflow-y: auto;
+            padding: 18px;
+            background: rgba(5,10,18,0.9);
+            border: 1px solid #00ecff;
+            border-radius: 14px;
+            box-shadow: 0 0 25px rgba(0,236,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        #world-expansion-panel h2 { margin-top: 0; color: #00ecff; font-size: 1.15rem; }
+
+        .world-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .world-tabs button, .life-actions button, #world-expansion-panel button {
+            padding: 8px 10px;
+            color: #001015;
+            background: #00ecff;
+            border: 0;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .world-tab { display: none; }
+        .world-tab.active { display: block; }
+
+        .world-tab label {
+            display: block;
+            margin: 8px 0;
+            color: #ccecf2;
+        }
+
+        .world-tab select {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            color: white;
+            background: #101927;
+            border: 1px solid #39566a;
+            border-radius: 5px;
+        }
+
+        .life-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .world-message {
+            min-height: 35px;
+            margin-top: 12px;
+            color: #b9faff;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 700px) {
+            #hud { top: 10px; left: 10px; }
+            #hud p { font-size: 0.78rem; }
+            #world-expansion-panel {
+                right: 10px;
+                bottom: 10px;
+                width: calc(100vw - 20px);
+                max-height: 45vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game"></div>
+
+    <section id="hud">
+        <h1>🌍 Infinite World</h1>
+        <p>Location: <span id="location">Green Valley</span></p>
+        <p>Time: <span id="time">Morning</span></p>
+        <p>Wildlife: <span id="animal-count">0</span></p>
+        <p>Population: <span id="npc-count">0</span></p>
+        <p>WASD: move · Shift: sprint · Mouse: look</p>
+    </section>
+
+    <div id="crosshair"></div>
+
+    <section id="start-screen">
+        <div id="start-card">
+            <h2>Infinite World</h2>
+            <p>Explore a living world full of forests, wildlife, villages, roads, rivers, houses, and atmospheric weather.</p>
+            <button id="start-button" type="button">Enter World</button>
+        </div>
+    </section>
+
+    <section id="world-expansion-panel" aria-label="Living world systems">
+        <h2>🌐 Living World Systems</h2>
+        <div class="world-tabs">
+            <button type="button" data-tab="vehicles">Vehicles</button>
+            <button type="button" data-tab="life">Life</button>
+            <button type="button" data-tab="powers">Powers</button>
+        </div>
+
+        <div class="world-tab active" id="vehicles-tab">
+            <label for="vehicle-select">Choose a vehicle</label>
+            <select id="vehicle-select"></select>
+            <button type="button" id="buy-vehicle-button">Buy Vehicle</button>
+            <button type="button" id="use-vehicle-button">Use Selected Vehicle</button>
+            <div id="vehicle-details" class="world-message"></div>
+        </div>
+
+        <div class="world-tab" id="life-tab">
+            <p>Virtual Money: <strong id="world-money">$25,000</strong></p>
+            <p>Education: <strong id="education-level">No enrollment</strong></p>
+            <p>Career: <strong id="career-level">Unemployed</strong></p>
+            <p>Home: <strong id="home-level">No home</strong></p>
+
+            <div class="life-actions">
+                <button type="button" data-action="high-school">High School</button>
+                <button type="button" data-action="university">University</button>
+                <button type="button" data-action="work">Work Shift</button>
+                <button type="button" data-action="buy-house">Buy House</button>
+            </div>
+
+            <div id="life-message" class="world-message"></div>
+        </div>
+
+        <div class="world-tab" id="powers-tab">
+            <label for="power-select">Select a power</label>
+            <select id="power-select">
+                <option value="speed">Lightning Speed</option>
+                <option value="flight">Sky Flight</option>
+                <option value="energy">Energy Burst</option>
+                <option value="shield">Guardian Shield</option>
+                <option value="time">Time Focus</option>
+            </select>
+            <button type="button" id="activate-power-button">Activate Power</button>
+            <div id="power-message" class="world-message"></div>
+        </div>
+    </section>
+
+    <script type="module">
+        import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js";
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x8ec5e8);
+        scene.fog = new THREE.Fog(0x8ec5e8, 80, 420);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 700);
+        camera.position.set(0, 5, 25);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        document.querySelector("#game").appendChild(renderer.domElement);
+
+        const clock = new THREE.Clock();
+        const keys = new Set();
+        const animals = [];
+        const npcs = [];
+
+        const materials = {
+            grass: new THREE.MeshStandardMaterial({ color: 0x3f9141, roughness: 1 }),
+            trunk: new THREE.MeshStandardMaterial({ color: 0x4b2d1d, roughness: 1 }),
+            leaves: new THREE.MeshStandardMaterial({ color: 0x1d7136, roughness: 0.95 }),
+            rock: new THREE.MeshStandardMaterial({ color: 0x687581, roughness: 1 }),
+            water: new THREE.MeshStandardMaterial({ color: 0x238fc2, transparent: true, opacity: 0.68, roughness: 0.15, metalness: 0.1 }),
+            house: new THREE.MeshStandardMaterial({ color: 0xb8774e, roughness: 0.9 }),
+            roof: new THREE.MeshStandardMaterial({ color: 0x3a2634, roughness: 1 }),
+            animal: new THREE.MeshStandardMaterial({ color: 0xc88b5a, roughness: 1 }),
+            npc: new THREE.MeshStandardMaterial({ color: 0xd8d8df, roughness: 0.8 })
+        };
+
+        let yaw = 0;
+        let pitch = 0;
+        let elapsedTime = 0;
+        let gameStarted = false;
+        let vehicleSpeedMultiplier = 1;
+        let currentPower = null;
+        let powerEndTime = 0;
+
+        const worldSize = 500;
+        const waterLevel = -1;
+
+        function random(min, max) { return min + Math.random() * (max - min); }
+
+        function terrainHeight(x, z) {
+            const hills = Math.sin(x * 0.035) * 5 + Math.cos(z * 0.042) * 4 + Math.sin((x + z) * 0.018) * 7;
+            const valley = Math.exp(-((x * x + z * z) / 9000)) * 8;
+            return hills + valley - 4;
+        }
+
+        function addLighting() {
+            scene.add(new THREE.HemisphereLight(0xbde9ff, 0x263522, 1.7));
+            const sun = new THREE.DirectionalLight(0xfff0c4, 3);
+            sun.position.set(-80, 150, 70);
+            sun.castShadow = true;
+            sun.shadow.mapSize.set(2048, 2048);
+            sun.shadow.camera.left = -180;
+            sun.shadow.camera.right = 180;
+            sun.shadow.camera.top = 180;
+            sun.shadow.camera.bottom = -180;
+            sun.name = "sun";
+            scene.add(sun);
+        }
+
+        function createTerrain() {
+            const geometry = new THREE.PlaneGeometry(worldSize, worldSize, 160, 160);
+            geometry.rotateX(-Math.PI / 2);
+            const positions = geometry.attributes.position;
+
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const z = positions.getY(i);
+                positions.setY(i, terrainHeight(x, z));
+            }
+
+            geometry.computeVertexNormals();
+            const terrain = new THREE.Mesh(geometry, materials.grass);
+            terrain.receiveShadow = true;
+            scene.add(terrain);
+        }
+
+        function createWater() {
+            const geometry = new THREE.PlaneGeometry(170, 95, 32, 32);
+            geometry.rotateX(-Math.PI / 2);
+            const water = new THREE.Mesh(geometry, materials.water);
+            water.position.set(15, waterLevel, -30);
+            water.receiveShadow = true;
+            scene.add(water);
+        }
+
+        function createTree(x, z, scale = 1) {
+            const group = new THREE.Group();
+            group.position.set(x, terrainHeight(x, z), z);
+            group.scale.setScalar(scale);
+
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.7, 5, 8), materials.trunk);
+            trunk.position.y = 2.5;
+            trunk.castShadow = true;
+
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(3.3, 7, 9), materials.leaves);
+            leaves.position.y = 6.8;
+            leaves.castShadow = true;
+
+            group.add(trunk, leaves);
+            scene.add(group);
+        }
+
+        function createRock(x, z, scale = 1) {
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(random(1, 2.5), 1), materials.rock);
+            rock.position.set(x, terrainHeight(x, z) + 1, z);
+            rock.scale.set(scale, scale * 0.7, scale);
+            rock.rotation.set(random(0, 1), random(0, 3), random(0, 1));
+            rock.castShadow = true;
+            rock.receiveShadow = true;
+            scene.add(rock);
+        }
+
+        function createHouse(x, z) {
+            const group = new THREE.Group();
+            group.position.set(x, terrainHeight(x, z), z);
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 10), materials.house);
+            body.position.y = 3.5;
+            body.castShadow = true;
+            body.receiveShadow = true;
+
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(9, 5, 4), materials.roof);
+            roof.position.y = 9;
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+
+            group.add(body, roof);
+            scene.add(group);
+        }
+
+        function createAnimal(x, z) {
+            const animal = new THREE.Group();
+            animal.position.set(x, terrainHeight(x, z) + 1.2, z);
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.4, 1.3), materials.animal);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials.animal);
+            head.position.set(1.8, 0.3, 0);
+
+            animal.add(body, head);
+            animal.userData = { direction: random(0, Math.PI * 2), speed: random(0.8, 1.7), changeTimer: random(1, 5) };
+            scene.add(animal);
+            animals.push(animal);
+        }
+
+        function createNpc(x, z) {
+            const npc = new THREE.Group();
+            npc.position.set(x, terrainHeight(x, z) + 1.2, z);
+
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 2.4, 8), materials.npc);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.55, 12, 12), materials.npc);
+            head.position.y = 1.7;
+
+            npc.add(body, head);
+            npc.userData = { direction: random(0, Math.PI * 2), speed: random(0.4, 0.9), changeTimer: random(1, 5) };
+            scene.add(npc);
+            npcs.push(npc);
+        }
+
+        function populateWorld() {
+            for (let i = 0; i < 150; i++) {
+                const x = random(-220, 220);
+                const z = random(-220, 220);
+                if (Math.abs(x) < 35 && Math.abs(z) < 35) continue;
+                createTree(x, z, random(0.7, 1.4));
+            }
+
+            for (let i = 0; i < 55; i++) createRock(random(-220, 220), random(-220, 220), random(0.6, 1.4));
+
+            createHouse(-30, -20);
+            createHouse(-5, -32);
+            createHouse(22, -18);
+
+            for (let i = 0; i < 18; i++) createAnimal(random(-150, 150), random(-150, 150));
+            for (let i = 0; i < 12; i++) createNpc(random(-55, 55), random(-55, 55));
+        }
+
+        function updateLivingWorld(delta) {
+            [...animals, ...npcs].forEach((character) => {
+                character.userData.changeTimer -= delta;
+                if (character.userData.changeTimer <= 0) {
+                    character.userData.direction += random(-1.2, 1.2);
+                    character.userData.changeTimer = random(2, 6);
+                }
+
+                const speed = character.userData.speed * delta;
+                const direction = character.userData.direction;
+                character.position.x += Math.sin(direction) * speed;
+                character.position.z += Math.cos(direction) * speed;
+                character.position.x = THREE.MathUtils.clamp(character.position.x, -220, 220);
+                character.position.z = THREE.MathUtils.clamp(character.position.z, -220, 220);
+                character.position.y = terrainHeight(character.position.x, character.position.z) + 1.2;
+                character.rotation.y = direction;
+            });
+        }
+
+        function updateDayNight(delta) {
+            elapsedTime += delta * 0.018;
+            const cycle = (Math.sin(elapsedTime) + 1) / 2;
+            const sun = scene.getObjectByName("sun");
+            sun.position.set(Math.cos(elapsedTime) * 130, 30 + cycle * 140, Math.sin(elapsedTime) * 100);
+            sun.intensity = 0.5 + cycle * 2.7;
+
+            const skyColor = new THREE.Color().setHSL(0.57, 0.55, 0.18 + cycle * 0.48);
+            scene.background.copy(skyColor);
+            scene.fog.color.copy(skyColor);
+
+            const hour = Math.floor(cycle * 24);
+            const phase = hour < 6 ? "Night" : hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+            document.querySelector("#time").textContent = phase;
+        }
+
+        function updatePlayer(delta) {
+            const direction = new THREE.Vector3();
+            if (keys.has("KeyW")) direction.z -= 1;
+            if (keys.has("KeyS")) direction.z += 1;
+            if (keys.has("KeyA")) direction.x -= 1;
+            if (keys.has("KeyD")) direction.x += 1;
+
+            if (direction.lengthSq() === 0) return;
+            direction.normalize();
+            const baseSpeed = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 25 : 12;
+            const powerMultiplier = currentPower && Date.now() < powerEndTime ? (currentPower.name === "Lightning Speed" ? 2 : 1.15) : 1;
+            const speed = baseSpeed * vehicleSpeedMultiplier * powerMultiplier;
+
+            direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+            camera.position.x += direction.x * speed * delta;
+            camera.position.z += direction.z * speed * delta;
+            camera.position.x = THREE.MathUtils.clamp(camera.position.x, -235, 235);
+            camera.position.z = THREE.MathUtils.clamp(camera.position.z, -235, 235);
+            camera.position.y = terrainHeight(camera.position.x, camera.position.z) + 5;
+
+            if (camera.position.z < 30) document.querySelector("#location").textContent = "Green Valley";
+            else if (camera.position.x > 60) document.querySelector("#location").textContent = "Ancient Forest";
+            else if (camera.position.z < -70) document.querySelector("#location").textContent = "Crystal Lake";
+            else document.querySelector("#location").textContent = "Frontier Lands";
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.05);
+            if (gameStarted) {
+                updatePlayer(delta);
+                updateLivingWorld(delta);
+                updateDayNight(delta);
+            }
+
+            document.querySelector("#animal-count").textContent = animals.length;
+            document.querySelector("#npc-count").textContent = npcs.length;
+            renderer.render(scene, camera);
+        }
+
+        document.addEventListener("keydown", (event) => keys.add(event.code));
+        document.addEventListener("keyup", (event) => keys.delete(event.code));
+
+        renderer.domElement.addEventListener("click", () => {
+            if (gameStarted && document.pointerLockElement !== renderer.domElement) renderer.domElement.requestPointerLock();
+        });
+
+        document.addEventListener("mousemove", (event) => {
+            if (document.pointerLockElement !== renderer.domElement) return;
+            yaw -= event.movementX * 0.002;
+            pitch -= event.movementY * 0.002;
+            pitch = THREE.MathUtils.clamp(pitch, -1.35, 1.35);
+            camera.rotation.order = "YXZ";
+            camera.rotation.y = yaw;
+            camera.rotation.x = pitch;
+        });
+
+        document.querySelector("#start-button").addEventListener("click", () => {
+            gameStarted = true;
+            document.querySelector("#start-screen").style.display = "none";
+            renderer.domElement.requestPointerLock();
+        });
+
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.addEventListener("world:vehicleChanged", (event) => {
+            const vehicle = event.detail;
+            vehicleSpeedMultiplier = Math.max(1, vehicle.speed / 12);
+            const label = document.querySelector("#location");
+            if (label) label.textContent = `${vehicle.name} active`;
+        });
+
+        window.addEventListener("world:powerActivated", (event) => {
+            currentPower = event.detail;
+            powerEndTime = Date.now() + 30000;
+            scene.traverse((object) => {
+                if (object.isMesh && object.material && object.material.emissive) object.material.emissive.setHex(0x321078);
+            });
+        });
+
+        addLighting();
+        createTerrain();
+        createWater();
+        populateWorld();
+        animate();
+    </script>
+
+    <script src="world-expansion.js"></script>
+</body>
+</html>
