@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Infinite Arcade AI — Play games, compete, and upgrade with real payments." />
+  <meta name="theme-color" content="#07070a" />
+  <title>Infinite Arcade AI</title>
+  <style>
+    :root {
+      --primary: #00ecff;
+      --dark: #07070a;
+      --card-bg: #12121f;
+      --text: #ffffff;
+      --muted: #a7a7bb;
+      --accent: #ff3838;
+      --success: #00ff66;
+      --purple: #9b59b6;
+      --gold: #ffc857;
+      --border: #28283e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--dark);
+      color: var(--text);
+      font-family: "Segoe UI", Roboto, sans-serif;
+      padding-bottom: 60px;
+    }
+
+    header {
+      padding: 35px 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #020205, #12121f);
+      border-bottom: 3px solid var(--primary);
+    }
+
+    header h1 {
+      margin: 0;
+      color: var(--primary);
+      font-size: clamp(2rem, 5vw, 2.8rem);
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px rgba(0,236,255,0.5);
+      text-transform: uppercase;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: 12px;
+    }
+
+    .container {
+      width: min(1100px, calc(100% - 30px));
+      margin: 20px auto;
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 900px) {
+      .grid-layout { grid-template-columns: 1.3fr 0.7fr; }
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid #1f1f33;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.6);
+    }
+
+    h2, h3 { color: var(--primary); margin-top: 0; }
+    .muted { color: var(--muted); }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 18px;
+      color: #000;
+      background: var(--primary);
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn.secondary {
+      color: white;
+      background: #292941;
+    }
+    .btn.small {
+      padding: 7px 11px;
+      font-size: 0.8rem;
+    }
+
+    .game-screen {
+      position: relative;
+      width: 100%;
+      min-height: 280px;
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #game-canvas {
+      display: none;
+      width: 100%;
+      max-width: 520px;
+      background: #111;
+      image-rendering: pixelated;
+    }
+
+    .play-prompt {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .plan-card {
+      background: linear-gradient(145deg, rgba(16,21,44,.95), rgba(10,12,28,.9));
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .plan-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-4px);
+      box-shadow: 0 0 20px rgba(0,236,255,0.2);
+    }
+
+    .plan-card.featured {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(255,200,87,0.3);
+    }
+
+    .plan-name {
+      color: var(--primary);
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 0 0 10px;
+    }
+
+    .plan-price {
+      font-size: 2rem;
+      color: var(--gold);
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .plan-features {
+      text-align: left;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin: 15px 0;
+      min-height: 100px;
+    }
+
+    .plan-features li {
+      margin: 6px 0;
+    }
+
+    .ai-panel {
+      background: linear-gradient(145deg, #150d2a, #07070a);
+      border: 2px solid var(--purple);
+      box-shadow: 0 0 20px rgba(155,89,181,0.3);
+    }
+
+    .stats-banner {
+      display: flex;
+      justify-content: space-around;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 15px;
+      background: #0b0b11;
+      border-bottom: 1px solid #222;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      font-size: 0.95rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .stat-val {
+      color: var(--success);
+      font-size: 1.2rem;
+      display: block;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      background: var(--accent);
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: white;
+    }
+
+    .status {
+      min-height: 22px;
+      margin-top: 10px;
+      color: var(--muted);
+    }
+
+    .notice {
+      padding: 12px;
+      background: rgba(0,236,255,0.08);
+      border: 1px solid rgba(0,236,255,0.25);
+      border-radius: 6px;
+      margin: 15px 0;
+    }
+
+    .ai-chat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 200px;
+      overflow-y: auto;
+      background: #07070a;
+      border: 1px solid #1a1a2e;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
+
+    .msg.ai {
+      align-self: flex-start;
+      color: white;
+      background: #1c1c30;
+      border-left: 3px solid var(--primary);
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      color: black;
+      background: var(--primary);
+    }
+
+    .chat-form {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #2c2c44;
+      background: #07070a;
+      color: white;
+    }
+
+    footer {
+      margin-top: 30px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 700px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .grid-layout { grid-template-columns: 1fr; }
+      .plan-features { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎮 Infinite Arcade AI</h1>
+    <p>Play, compete, level up, and unlock premium features with real payments</p>
+  </header>
+
+  <div class="stats-banner">
+    <div class="stat-box">High Score: <span class="stat-val" id="high-score">0</span></div>
+    <div class="stat-box">Plan Level: <span id="plan-badge" class="badge">Free</span></div>
+    <div class="stat-box">Games Played: <span class="stat-val" id="games-played">0</span></div>
+  </div>
+
+  <main class="container">
+    <div class="grid-layout">
+      <div class="stack">
+        <section class="panel">
+          <h2>🎯 Infinite Jet Evader</h2>
+          <p class="muted">Avoid obstacles. Beat your high score. Unlock powers with premium plans.</p>
+
+          <div class="game-screen">
+            <div class="play-prompt" id="game-start-ui">
+              <p>Click or tap the game area to play.</p>
+              <button class="btn" id="start-game-button" type="button">Launch Game</button>
+            </div>
+            <canvas id="game-canvas" width="520" height="280">Canvas not supported.</canvas>
+          </div>
+          <div class="status" id="game-status" role="status">Ready to launch.</div>
+        </section>
+
+        <section class="panel">
+          <h2>💰 Upgrade Your Plan</h2>
+          <p class="muted">Choose your plan to unlock features and track scores globally.</p>
+
+          <div class="pricing-grid">
+            <div class="plan-card">
+              <div class="plan-name">Half Quarter</div>
+              <div class="plan-price">$2.49</div>
+              <ul class="plan-features">
+                <li>✓ Basic arcade</li>
+                <li>✓ Local scores</li>
+                <li>✓ 5 daily plays</li>
+                <li>✗ No AI hints</li>
+                <li>✗ No global leaderboard</li>
+              </ul>
+              <a class="btn small" href="https://buy.stripe.com/test_half_quarter" target="_blank">Subscribe</a>
+            </div>
+
+            <div class="plan-card featured">
+              <div class="plan-name">⭐ Full Quarter</div>
+              <div class="plan-price">$4.99</div>
+              <ul class="plan-features">
+                <li>✓ Unlimited plays</li>
+                <li>✓ AI hints enabled</li>
+                <li>✓ Global leaderboard</li>
+                <li>✓ Score multipliers</li>
+                <li>✓ Custom themes</li>
+              </ul>
+              <a class="btn small" href="https://buy.stripe.com/test_full_quarter" target="_blank">Subscribe</a>
+            </div>
+
+            <div class="plan-card">
+              <div class="plan-name">Full Plan</div>
+              <div class="plan-price">$9.99</div>
+              <ul class="plan-features">
+                <li>✓ Everything in Full Quarter</li>
+                <li>✓ Advanced AI training</li>
+                <li>✓ Custom difficulty</li>
+                <li>✓ VIP support</li>
+                <li>✓ Lifetime access</li>
+              </ul>
+              <a class="btn small" href="https://buy.stripe.com/test_full_plan" target="_blank">Subscribe</a>
+            </div>
+          </div>
+
+          <div class="notice">
+            Replace Stripe links with your real payment links from <strong>Stripe Dashboard → Payment Links</strong>.
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel ai-panel">
+          <h2>🤖 Arcade AI Coach</h2>
+          <p class="muted">AI hints available with Full Quarter or Full Plan.</p>
+
+          <div class="ai-chat-box" id="ai-chat" aria-live="polite">
+            <div class="msg ai">Welcome! Play the arcade game above. I can help if you upgrade.</div>
+          </div>
+
+          <form class="chat-form" id="ai-form">
+            <input id="ai-input" type="text" placeholder="Ask for a hint (upgrade to unlock)..." autocomplete="off" aria-label="AI hint request" />
+            <button class="btn" type="submit">Ask</button>
+          </form>
+
+          <div class="status" id="ai-status" role="status"></div>
+        </section>
+
+        <section class="panel">
+          <h2>📊 Your Stats</h2>
+          <p id="plan-info" class="muted">Plan: Free (Limited access)</p>
+          <p id="play-info" class="muted">Games played today: <strong id="daily-plays">0</strong></p>
+          <p id="score-info" class="muted">Personal best: <strong id="personal-best">0</strong></p>
+          <button class="btn secondary" id="upgrade-button" type="button">View Plans</button>
+        </section>
+      </div>
+    </div>
+
+    <footer>Infinite Arcade AI — Premium gaming experience. Use test Stripe links until you add your real payment links.</footer>
+  </main>
+
+  <script>
+    "use strict";
+
+    let canvas = null;
+    let ctx = null;
+    let animationFrameId = null;
+    let isPlaying = false;
+    let score = 0;
+    let playerY = 140;
+    let velocity = 0;
+    let obstacleX = 520;
+    let obstacleY = 70;
+    let gamesPlayedTotal = Number(localStorage.getItem("arcade_games_played") || 0);
+    let highScore = Number(localStorage.getItem("arcade_high_score") || 0);
+    let currentPlan = localStorage.getItem("arcade_plan") || "free";
+    let dailyPlays = Number(localStorage.getItem("arcade_daily_plays") || 0);
+
+    function resetDaily() {
+      const lastReset = localStorage.getItem("arcade_last_reset");
+      const today = new Date().toDateString();
+      if (lastReset !== today) {
+        dailyPlays = 0;
+        localStorage.setItem("arcade_last_reset", today);
+        localStorage.setItem("arcade_daily_plays", "0");
+      }
+    }
+
+    function updateUI() {
+      document.getElementById("high-score").textContent = highScore;
+      document.getElementById("games-played").textContent = gamesPlayedTotal;
+      document.getElementById("plan-badge").textContent = currentPlan === "free" ? "FREE" : currentPlan.toUpperCase();
+      document.getElementById("personal-best").textContent = highScore;
+      document.getElementById("daily-plays").textContent = dailyPlays;
+      
+      if (currentPlan === "free") {
+        document.getElementById("plan-info").textContent = "Plan: Free (Limited to 5 plays/day)";
+        document.getElementById("plan-badge").style.background = "var(--accent)";
+      } else if (currentPlan === "half") {
+        document.getElementById("plan-info").textContent = "Plan: Half Quarter (Active)";
+        document.getElementById("plan-badge").style.background = "var(--success)";
+      } else if (currentPlan === "full") {
+        document.getElementById("plan-info").textContent = "Plan: Full Quarter (Premium)";
+        document.getElementById("plan-badge").style.background = "var(--primary)";
+      } else if (currentPlan === "lifetime") {
+        document.getElementById("plan-info").textContent = "Plan: Full Plan (Lifetime)";
+        document.getElementById("plan-badge").style.background = "var(--gold)";
+      }
+    }
+
+    function canPlay() {
+      if (currentPlan === "free" && dailyPlays >= 5) {
+        document.getElementById("game-status").textContent = "Free plan: 5 plays per day reached. Upgrade to play more.";
+        return false;
+      }
+      return true;
+    }
+
+    function startMiniGame() {
+      if (isPlaying) return;
+      if (!canPlay()) return;
+
+      canvas = document.getElementById("game-canvas");
+      ctx = canvas.getContext("2d");
+      if (!ctx) {
+        document.getElementById("game-status").textContent = "Canvas is not supported.";
+        return;
+      }
+
+      score = 0;
+      playerY = 140;
+      velocity = 0;
+      obstacleX = canvas.width;
+      obstacleY = 50 + Math.random() * 140;
+      isPlaying = true;
+      document.getElementById("game-start-ui").classList.add("hidden");
+      canvas.style.display = "block";
+      document.getElementById("game-status").textContent = "Tap or click to boost upward.";
+      gameLoop();
+    }
+
+    function boostPlayer() {
+      if (isPlaying) velocity = -7;
+    }
+
+    function gameLoop() {
+      if (!isPlaying) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      velocity += 0.32;
+      playerY += velocity;
+
+      if (playerY < 0 || playerY + 24 > canvas.height) {
+        endGame();
+        return;
+      }
+
+      obstacleX -= 3.8;
+      if (obstacleX < -40) {
+        obstacleX = canvas.width;
+        obstacleY = 35 + Math.random() * 150;
+        score += 1;
+      }
+
+      ctx.fillStyle = "#00ecff";
+      ctx.fillRect(35, playerY, 26, 24);
+      ctx.fillStyle = "#ff3838";
+      ctx.fillRect(obstacleX, obstacleY, 32, 75);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 16px sans-serif";
+      ctx.fillText(`Score: ${score}`, 12, 26);
+
+      const collision = obstacleX < 61 && obstacleX + 32 > 35 && playerY < obstacleY + 75 && playerY + 24 > obstacleY;
+      if (collision) {
+        endGame();
+        return;
+      }
+
+      animationFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+      isPlaying = false;
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("arcade_high_score", String(highScore));
+        document.getElementById("game-status").textContent = `🎉 New high score: ${score}!`;
+      } else {
+        document.getElementById("game-status").textContent = `Game over. Score: ${score}. High score: ${highScore}.`;
+      }
+
+      gamesPlayedTotal++;
+      dailyPlays++;
+      localStorage.setItem("arcade_games_played", String(gamesPlayedTotal));
+      localStorage.setItem("arcade_daily_plays", String(dailyPlays));
+
+      document.getElementById("game-start-ui").classList.remove("hidden");
+      canvas.style.display = "none";
+      updateUI();
+
+      const hint = currentPlan === "full" || currentPlan === "lifetime" ? "AI Hint: Focus on the center lane." : "Upgrade to get AI hints!";
+      appendAIMessage(hint);
+    }
+
+    function appendAIMessage(text) {
+      const chat = document.getElementById("ai-chat");
+      const msg = document.createElement("div");
+      msg.className = "msg ai";
+      msg.textContent = text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function sendAIRequest(event) {
+      event.preventDefault();
+      const input = document.getElementById("ai-input");
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      if (currentPlan === "free") {
+        appendAIMessage("AI is locked to Free plan users. Upgrade to Half Quarter or higher.");
+        input.value = "";
+        return;
+      }
+
+      const chat = document.getElementById("ai-chat");
+      const msg = document.createElement("div");
+      msg.className = "msg user";
+      msg.textContent = userText;
+      chat.appendChild(msg);
+      input.value = "";
+
+      const hints = [
+        "Stay in the middle of the screen and use small taps to control height.",
+        "Anticipate obstacles early. Start boosting before they appear.",
+        "Rhythm matters: try a steady tap pattern instead of frantic clicking.",
+        "Watch for patterns in obstacle placement. They're semi-random.",
+        "More power-ups appear at higher scores. Keep pushing!"
+      ];
+
+      const randomHint = hints[Math.floor(Math.random() * hints.length)];
+      setTimeout(() => appendAIMessage("AI Coach: " + randomHint), 500);
+    }
+
+    document.getElementById("start-game-button").addEventListener("click", startMiniGame);
+    document.querySelector(".game-screen").addEventListener("pointerdown", boostPlayer);
+    document.addEventListener("keydown", (event) => {
+      if (event.code === "Space" && isPlaying) {
+        event.preventDefault();
+        boostPlayer();
+      }
+    });
+
+    document.getElementById("ai-form").addEventListener("submit", sendAIRequest);
+
+    document.getElementById("upgrade-button").addEventListener("click", () => {
+      document.querySelector(".pricing-grid").scrollIntoView({ behavior: "smooth" });
+    });
+
+    resetDaily();
+    updateUI();
+  </script>
+</body>
+</html>
